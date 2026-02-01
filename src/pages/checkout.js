@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 export default function Checkout() {
   const router = useRouter();
   const { cart, cartTotal, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -59,8 +59,18 @@ export default function Checkout() {
     setLoading(false);
   };
 
-  if (!user) {
-    router.push('/login?redirect=/checkout');
+  // Redirect unauthenticated users on the client to avoid SSR router errors
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login?redirect=/checkout');
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || (!user && typeof window === 'undefined')) {
+    return null;
+  }
+
+  if (!authLoading && !user) {
     return null;
   }
 
