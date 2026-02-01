@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login • NovaStack (Insecure SQL Demo)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, sans-serif;
+      background: #0b0f14;
+      color: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .auth {
+      width: 100%;
+      max-width: 380px;
+      background: #0e1621;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 28px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      font-weight: 600;
+      color: #3ecf8e;
+    }
+    p {
+      margin: 0 0 20px;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+    label {
+      font-size: 13px;
+      color: #9ca3af;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 11px;
+      border-radius: 8px;
+      border: none;
+      background: #3ecf8e;
+      color: #020617;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .toggle {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: #9ca3af;
+      cursor: pointer;
+    }
+    .toggle span {
+      color: #3ecf8e;
+      font-weight: 500;
+    }
+      </style>
+</head>
+<body>
+  <div class="auth" id="login">
+    <h1>Sign in</h1>
+    <p>Client-side SQL authentication</p>
+    <label>Username</label>
+    <input id="login-user" />
+    <label>Password</label>
+    <input id="login-pass" type="password" />
+    <button onclick="signIn()">Sign in</button><div id="login-msg" style="margin-top:12px;font-size:13px;text-align:center;"></div>
+    <div class="toggle" onclick="toggle()">No account? <span>Sign up</span></div>
+    
+  </div>
+
+  <div class="auth" id="signup" style="display:none">
+    <h1>Create account</h1>
+    <p>No hashing. No server. No protection.</p>
+    <label>Username</label>
+    <input id="signup-user" />
+    <label>Password</label>
+    <input id="signup-pass" type="password" />
+    <button onclick="signUp()">Create account</button><div id="signup-msg" style="margin-top:12px;font-size:13px;text-align:center;"></div>
+    <div class="toggle" onclick="toggle()">Already have an account? <span>Sign in</span></div>
+    
+  </div>
+
+  <script>
+    let db
+
+    initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}` })
+      .then(SQL => {
+        const saved = localStorage.getItem('sql-db')
+        db = saved ? new SQL.Database(new Uint8Array(JSON.parse(saved))) : new SQL.Database()
+        db.run('CREATE TABLE IF NOT EXISTS users (username TEXT, password TEXT)')
+      })
+
+    function persist() {
+      const data = db.export()
+      localStorage.setItem('sql-db', JSON.stringify(Array.from(data)))
+    }
+
+    function toggle() {
+      login.style.display = login.style.display === 'none' ? 'block' : 'none'
+      signup.style.display = signup.style.display === 'none' ? 'block' : 'none'
+    }
+
+    function signUp() {
+      const u = document.getElementById('signup-user').value
+      const p = document.getElementById('signup-pass').value
+      if (!u || !p) {
+        document.getElementById('signup-msg').textContent = 'Missing username or password'
+        document.getElementById('signup-msg').style.color = '#f87171'
+        return
+      }
+      db.run(`INSERT INTO users VALUES ('${u}', '${p}')`)
+      persist()
+      document.getElementById('signup-msg').textContent = 'Account created'
+      document.getElementById('signup-msg').style.color = '#3ecf8e'
+      toggle()
+    }
+
+    function signIn() {
+      const u = document.getElementById('login-user').value
+      const p = document.getElementById('login-pass').value
+      const res = db.exec(`SELECT * FROM users WHERE username='${u}' AND password='${p}'`)
+      if (res.length) {
+        localStorage.setItem('session', u)
+        window.location.href = 'index.html'
+      } else {
+        document.getElementById('login-msg').textContent = 'Invalid username or password'
+        document.getElementById('login-msg').style.color = '#f87171'
+      }
+    }
+  </script>
+</body>
+</html>
